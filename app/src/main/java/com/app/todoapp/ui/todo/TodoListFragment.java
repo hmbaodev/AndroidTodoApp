@@ -8,6 +8,7 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -15,14 +16,13 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.app.todoapp.R;
 import com.app.todoapp.adapter.TodoAdapter;
 import com.app.todoapp.model.Todo;
+import com.app.todoapp.viewmodel.TodoViewModel;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class TodoListFragment extends Fragment {
 
     private TodoAdapter adapter;
+    private TodoViewModel viewModel;
 
     @Nullable
     @Override
@@ -39,26 +39,28 @@ public class TodoListFragment extends Fragment {
         RecyclerView rvTodos = view.findViewById(R.id.rv_todos);
         FloatingActionButton fabAdd = view.findViewById(R.id.fab_add_todo);
 
-        // Dummy data for now
-        List<Todo> dummyTodos = new ArrayList<>();
-        dummyTodos.add(new Todo("1", "Buy groceries", "Milk, eggs, bread", false));
-        dummyTodos.add(new Todo("2", "Read a book", "Clean code by Robert Martin", false));
-        dummyTodos.add(new Todo("3", "Go for a walk", "30 minutes in the park", true));
+        viewModel = new ViewModelProvider(requireActivity()).get(TodoViewModel.class);
 
-        adapter = new TodoAdapter(dummyTodos, new TodoAdapter.OnTodoClickListener() {
-            @Override
-            public void onTodoClick(Todo todo) {
-                // TODO: navigate to edit screen
-            }
+        adapter = new TodoAdapter(new java.util.ArrayList<>(),
+                new TodoAdapter.OnTodoClickListener() {
+                    @Override
+                    public void onTodoClick(Todo todo) {
+                        // TODO: navigate to edit screen
+                    }
 
-            @Override
-            public void onTodoChecked(Todo todo, boolean isChecked) {
-                // TODO: update todo status
-            }
-        });
+                    @Override
+                    public void onTodoChecked(Todo todo, boolean isChecked) {
+                        viewModel.toggleCompleted(todo);
+                    }
+                });
 
         rvTodos.setLayoutManager(new LinearLayoutManager(getContext()));
         rvTodos.setAdapter(adapter);
+
+        // Observe LiveData — UI updates automatically when data changes
+        viewModel.getTodos().observe(getViewLifecycleOwner(), todos ->
+                adapter.updateTodos(todos)
+        );
 
         fabAdd.setOnClickListener(v ->
                 Navigation.findNavController(view)
